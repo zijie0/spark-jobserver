@@ -61,8 +61,7 @@ object Dependencies {
   )
 
   lazy val cassandraDeps = Seq(
-    "com.datastax.cassandra" % "cassandra-driver-core" % cassandra,
-    "com.datastax.cassandra" % "cassandra-driver-mapping" % cassandra
+    "com.datastax.spark" %% "spark-cassandra-connector" % "2.0.0"
   )
 
   lazy val logbackDeps = Seq(
@@ -74,8 +73,7 @@ object Dependencies {
   lazy val coreTestDeps = Seq(
     scalaTestDep,
     "com.typesafe.akka" %% "akka-testkit" % akka % Test,
-    "io.spray" %% "spray-testkit" % spray % Test,
-    "org.cassandraunit" % "cassandra-unit" % cassandraUnit % Test
+    "io.spray" %% "spray-testkit" % spray % Test
   )
 
   lazy val securityDeps = Seq(

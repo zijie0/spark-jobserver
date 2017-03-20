@@ -2,7 +2,7 @@
 import Dependencies._
 import JobServerRelease._
 
-transitiveClassifiers in Global := Seq()
+transitiveClassifiers in Global := Seq(Artifact.SourceClassifier)
 lazy val dirSettings = Seq()
 
 lazy val akkaApp = Project(id = "akka-app", base = file("akka-app"))
@@ -85,7 +85,7 @@ lazy val root = Project(id = "root", base = file("."))
   .disablePlugins(SbtScalariform).enablePlugins(DockerPlugin)
 
 lazy val jobServerExtrasSettings = revolverSettings ++ Assembly.settings ++ publishSettings ++ Seq(
-  libraryDependencies ++= sparkExtraDeps,
+  libraryDependencies ++= sparkExtraDeps ++ cassandraDeps,
   // Extras packages up its own jar for testing itself
   test in Test <<= (test in Test).dependsOn(packageBin in Compile)
     .dependsOn(clean in Compile),
