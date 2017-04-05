@@ -41,6 +41,7 @@ lazy val jobServer = Project(id = "job-server", base = file("job-server"))
 lazy val jobServerTestJar = Project(id = "job-server-tests", base = file("job-server-tests"))
   .settings(commonSettings)
   .settings(jobServerTestJarSettings)
+  .settings(noPublishSettings)
   .dependsOn(jobServerApi)
   .disablePlugins(SbtScalariform)
 
@@ -78,6 +79,7 @@ lazy val jobServerPython = Project(id = "job-server-python", base = file("job-se
 lazy val root = Project(id = "root", base = file("."))
   .settings(commonSettings)
   .settings(ourReleaseSettings)
+  .settings(noPublishSettings)
   .settings(rootSettings)
   .settings(dockerSettings)
   .aggregate(jobServer, jobServerApi, jobServerTestJar, akkaApp, jobServerExtras, jobServerPython)
@@ -112,9 +114,13 @@ lazy val jobServerPythonSettings = revolverSettings ++ Assembly.settings ++ publ
 
 lazy val jobServerTestJarSettings = Seq(
   libraryDependencies ++= sparkDeps ++ apiDeps,
-  publishArtifact := false,
   description := "Test jar for Spark Job Server",
   exportJars := true // use the jar instead of target/classes
+)
+
+lazy val noPublishSettings = Seq(
+  publishTo := Some(Resolver.file("Unused repo", file("target/unusedrepo"))),
+  publishArtifact := false
 )
 
 lazy val dockerSettings = Seq(
@@ -124,7 +130,7 @@ lazy val dockerSettings = Seq(
     val artifact = (assemblyOutputPath in assembly in jobServerExtras).value
     val artifactTargetPath = s"/app/${artifact.name}"
 
-    val sparkBuild = s"spark-$sparkVersion"
+    val sparkBuild = s"spark-${Versions.spark}"
     val sparkBuildCmd = scalaBinaryVersion.value match {
       case "2.11" =>
         "./make-distribution.sh -Dscala-2.11 -Phadoop-2.7 -Phive"
@@ -132,11 +138,11 @@ lazy val dockerSettings = Seq(
     }
 
     new sbtdocker.mutable.Dockerfile {
-      from(s"openjdk:$javaVersion")
+      from(s"openjdk:${Versions.java}")
       // Dockerfile best practices: https://docs.docker.com/articles/dockerfile_best-practices/
       expose(8090)
       expose(9999) // for JMX
-      env("MESOS_VERSION", mesosVersion)
+      env("MESOS_VERSION", Versions.mesos)
       runRaw(
         """echo "deb http://repos.mesosphere.io/ubuntu/ trusty main" > /etc/apt/sources.list.d/mesosphere.list && \
                 apt-key adv --keyserver keyserver.ubuntu.com --recv E56151BF && \
@@ -178,10 +184,10 @@ lazy val dockerSettings = Seq(
                         repository = "spark-jobserver",
                         tag = Some(
                           s"${version.value}" +
-                          s".mesos-${mesosVersion.split('-')(0)}" +
-                          s".spark-$sparkVersion" +
+                          s".mesos-${Versions.mesos.split('-')(0)}" +
+                          s".spark-${Versions.spark}" +
                           s".scala-${scalaBinaryVersion.value}" +
-                          s".jdk-$javaVersion")
+                          s".jdk-${Versions.java}")
                         )
   )
 )
@@ -222,7 +228,6 @@ lazy val commonSettings = Defaults.coreDefaultSettings ++ dirSettings ++ implici
   crossPaths   := true,
   scalaVersion := sys.env.getOrElse("SCALA_VERSION", "2.11.8"),
   dependencyOverrides += "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-  publishTo := Some(Resolver.file("Unused repo", file("target/unusedrepo"))),
   // scalastyleFailOnError := true,
   runScalaStyle := {
     org.scalastyle.sbt.ScalastylePlugin.scalastyle.in(Compile).toTask("").value
