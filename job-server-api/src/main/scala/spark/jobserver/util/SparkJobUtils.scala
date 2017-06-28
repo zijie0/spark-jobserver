@@ -51,7 +51,7 @@ object SparkJobUtils {
     Try(config.getString("spark.home")).foreach { home => conf.setSparkHome(home) }
 
     // Set the Jetty port to 0 to find a random port
-    conf.set("spark.ui.port", "0")
+    conf.set("spark.ui.port", "4050")
 
     // Set spark broadcast factory in yarn-client mode
     if (sparkMaster == "yarn-client") {
