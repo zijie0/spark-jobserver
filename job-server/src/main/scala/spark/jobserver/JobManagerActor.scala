@@ -232,12 +232,20 @@ class JobManagerActor(contextConfig: Config, daoActor: ActorRef)
 
     val daoAskTimeout = Timeout(15 seconds)
     // TODO: refactor so we don't need Await, instead flatmap into more futures
-    val resp = Await.result(
+
+    // by bwu: If we don't Try here, the exception thrown here will crash the whole JobManagerActor,
+    //   and it never come back again
+    //     (it will error with NullPointer Exceptions in restarted instances)
+    val respOpt = Try(Await.result(
       (daoActor ? JobDAOActor.GetLastUploadTimeAndType(appName))(daoAskTimeout).
         mapTo[JobDAOActor.LastUploadTimeAndType],
-      daoAskTimeout.duration)
+      daoAskTimeout.duration)).toOption
 
-    val lastUploadTimeAndType = resp.uploadTimeAndType
+    if (respOpt.isEmpty) {
+      return failed(WrongJobType)
+    }
+
+    val lastUploadTimeAndType = respOpt.get.uploadTimeAndType
     if (!lastUploadTimeAndType.isDefined) return failed(NoSuchApplication)
     val (lastUploadTime, binaryType) = lastUploadTimeAndType.get
 
