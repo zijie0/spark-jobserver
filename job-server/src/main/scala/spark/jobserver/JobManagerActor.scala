@@ -322,6 +322,10 @@ class JobManagerActor(contextConfig: Config, daoActor: ActorRef)
             "your code with an older version of SJS? here's the exception:", e)
           throw e
         }
+        case _: StackOverflowError => {
+          logger.error("Oops, stack overflow")
+          throw new RuntimeException("Stack Overflow")
+        }
         case e: Throwable => {
           logger.error("Got Throwable", e)
           throw e
