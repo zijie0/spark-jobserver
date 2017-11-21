@@ -1,4 +1,4 @@
-function showJobs(filter,$tableBody) {
+function showJobs(filter,$tableBody,allowKill) {
     $.getJSON(
         'jobs',
         filter,
@@ -12,6 +12,9 @@ function showJobs(filter,$tableBody) {
                 jobsHtml += "<td>" + job.context + "</td>";
                 jobsHtml += "<td>" + job.startTime + "</td>";
                 jobsHtml += "<td>" + job.duration + "</td>";
+                if (allowKill) {
+                    jobsHtml += "<td><a href='#' id=" + job.jobId + " onclick='deleteJob(this.id);return false;'>kill</a></td>";
+                }
                 jobsHtml += "</tr>";
             });
             $tableBody.html(jobsHtml);
@@ -20,11 +23,11 @@ function showJobs(filter,$tableBody) {
 
 function getJobs() {
     //show error jobs
-    showJobs({status:"error"},$('#failedJobsTable > tbody:last'));
+    showJobs({status:"error"},$('#failedJobsTable > tbody:last'), false);
     //show running jobs
-    showJobs({status:"running"},$('#runningJobsTable > tbody:last'));
+    showJobs({status:"running"},$('#runningJobsTable > tbody:last'), true);
     //show complete jobs
-    showJobs({status:"finished"},$('#completedJobsTable > tbody:last'));
+    showJobs({status:"finished"},$('#completedJobsTable > tbody:last'), false);
 }
 
 function getContexts() {
@@ -39,6 +42,22 @@ function getContexts() {
                 items.push("<tr><td>" + contextName + "</td></tr>");
                 $('#contextsTable > tbody:last').append(items.join(""));
             });
+        });
+}
+
+function deleteJob(jobID) {
+    var deleteURL = "./jobs/" + jobID;
+
+    $.ajax ({
+        type: 'DELETE',
+        url: deleteURL
+    })
+        .done(function( responseText) {
+            alert( "Killed job: " + jobID + "\n" + JSON.stringify(responseText) );
+            window.location.reload(true);
+        })
+        .fail(function( jqXHR ) {
+            alert( "Failed killing job: " + jobID + "\n" + JSON.stringify(jqXHR.responseJSON) );
         });
 }
 
