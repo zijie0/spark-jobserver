@@ -249,7 +249,12 @@ class JobManagerActor(contextConfig: Config, daoActor: ActorRef)
     if (!lastUploadTimeAndType.isDefined) return failed(NoSuchApplication)
     val (lastUploadTime, binaryType) = lastUploadTimeAndType.get
 
-    val jobId = java.util.UUID.randomUUID().toString()
+    val jobId = if (jobConfig.hasPath("jobId")) {
+      jobConfig.getString("jobId")
+    } else {
+      java.util.UUID.randomUUID().toString()
+    }
+
     val jobContainer = factory.loadAndValidateJob(appName, lastUploadTime,
                                                   classPath, jobCache) match {
       case Good(container)       => container
