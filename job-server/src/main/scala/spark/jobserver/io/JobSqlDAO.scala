@@ -17,7 +17,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.reflect.runtime.universe
 
-class JobSqlDAO(config: Config) extends JobDAO with FileCacher {
+class JobSqlDAO(config: Config, classLoader: ClassLoader) extends JobDAO with FileCacher {
   val slickDriverClass = config.getString("spark.jobserver.sqldao.slick-driver")
   val jdbcDriverClass = config.getString("spark.jobserver.sqldao.jdbc-driver")
 
@@ -112,6 +112,7 @@ class JobSqlDAO(config: Config) extends JobDAO with FileCacher {
 
     // Flyway migration
     val flyway = new Flyway()
+    flyway.setClassLoader(classLoader)
     flyway.setDataSource(jdbcUrl, jdbcUser, jdbcPassword)
     // TODO: flyway.setLocations(migrateLocations) should be removed when tests have a running configuration
     flyway.setLocations(migrateLocations)

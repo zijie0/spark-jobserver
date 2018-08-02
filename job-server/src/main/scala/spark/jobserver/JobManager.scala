@@ -10,7 +10,8 @@ import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 import spark.jobserver.common.akka.actor.Reaper.WatchMe
 import org.slf4j.LoggerFactory
 import spark.jobserver.common.akka.actor.ProductionReaper
-import spark.jobserver.io.{JobDAO, JobDAOActor}
+import spark.jobserver.io.{JobDAO, JobDAOActor, JobSqlDAO}
+
 import scala.collection.JavaConverters._
 
 /**
@@ -63,9 +64,10 @@ object JobManager {
     }
 
     val system = makeSystem(config.resolve())
-    val clazz = Class.forName(config.getString("spark.jobserver.jobdao"))
-    val ctor = clazz.getDeclaredConstructor(Class.forName("com.typesafe.config.Config"))
-    val jobDAO = ctor.newInstance(config).asInstanceOf[JobDAO]
+    //val clazz = Class.forName(config.getString("spark.jobserver.jobdao"))
+    //val ctor = clazz.getDeclaredConstructor(Class.forName("com.typesafe.config.Config"))
+    //val jobDAO = ctor.newInstance(config).asInstanceOf[JobDAO]
+    val jobDAO = new JobSqlDAO(config, Thread.currentThread().getContextClassLoader())
     val daoActor = system.actorOf(Props(classOf[JobDAOActor], jobDAO), "dao-manager-jobmanager")
 
     logger.info("Starting JobManager named " + managerName + " with config {}",

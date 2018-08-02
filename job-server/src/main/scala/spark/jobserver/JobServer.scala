@@ -1,12 +1,12 @@
 package spark.jobserver
 
-import akka.actor.{ActorSystem, ActorRef}
+import akka.actor.{ActorRef, ActorSystem}
 import akka.actor.Props
 import akka.pattern.ask
-import com.typesafe.config.{ConfigValueFactory, Config, ConfigFactory}
-
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 import java.io.File
-import spark.jobserver.io.{BinaryType, JobDAOActor, JobDAO, DataFileDAO}
+
+import spark.jobserver.io.{BinaryType, DataFileDAO, JobDAOActor, JobSqlDAO}
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
@@ -34,8 +34,15 @@ object JobServer {
 
   // Allow custom function to create ActorSystem.  An example of why this is useful:
   // we can have something that stores the ActorSystem so it could be shut down easily later.
-  def start(args: Array[String], makeSystem: Config => ActorSystem) {
-    val defaultConfig = ConfigFactory.load()
+  def start(args: Array[String], makeSystem: Config => ActorSystem): Unit = {
+    val defaultConfig: Config = ConfigFactory.load()
+    val classLoader = Thread.currentThread().getContextClassLoader()
+    start(classLoader, defaultConfig, args, makeSystem)
+  }
+
+  def start(classLoader: ClassLoader, defaultConfig: Config,
+            args: Array[String], makeSystem: Config => ActorSystem): Unit = {
+
     val config = if (args.length > 0) {
       val configFile = new File(args(0))
       if (!configFile.exists()) {
@@ -53,7 +60,7 @@ object JobServer {
     // TODO: Hardcode for now to get going. Make it configurable later.
     val system = makeSystem(config)
     val clazz = Class.forName(config.getString("spark.jobserver.jobdao"))
-    val ctor = clazz.getDeclaredConstructor(Class.forName("com.typesafe.config.Config"))
+    // val ctor = clazz.getDeclaredConstructor(Class.forName("com.typesafe.config.Config"))
     try {
       val contextPerJvm = config.getBoolean("spark.jobserver.context-per-jvm")
       // Check if we are using correct DB backend when context-per-jvm is enabled.
@@ -66,7 +73,8 @@ object JobServer {
             throw new RuntimeException("H2 mem backend is not support with context-per-jvm.")
         }
       }
-      val jobDAO = ctor.newInstance(config).asInstanceOf[JobDAO]
+      // val jobDAO = ctor.newInstance(config).asInstanceOf[JobDAO]
+      val jobDAO = new JobSqlDAO(config, classLoader)
       val daoActor = system.actorOf(Props(classOf[JobDAOActor], jobDAO), "dao-manager")
       val dataManager = system.actorOf(Props(classOf[DataManagerActor],
           new DataFileDAO(config)), "data-manager")
